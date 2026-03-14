@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice / Quotation Generator</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- <link rel="stylesheet" href="invoice.css"> -->
+
+</head>
+
+<body>
+
+    <style>
+        :root {
+            --primary: #009688;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .e-con-inner {
+            max-width: unset !important;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .pdf-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .from-to-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .form-section {
+            flex: 1;
+            min-width: 320px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        .preview-section {
+            flex: 1;
+            min-width: 320px;
+        }
+
+        h1#previewTitle {
+            font-size: 32px !important;
+        }
+
+        h2 {
+            color: var(--primary);
+            margin-top: 25px;
+            font-size: 18px !important;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .dates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .print-btn-container {
+            display: flex;
+            justify-content: end;
+            gap: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .item-row {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .preview {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-header img {
+            max-height: 80px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .totals {
+            text-align: right;
+            margin-top: 20px;
+            position: relative;
+
+            #paidStamp,
+            #partialPaidStamp {
+                display: none;
+                position: absolute;
+                right: 122px;
+                bottom: -8px;
+            }
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .qr-img-container {
+            display: flex;
+            justify-content: end;
+            flex-direction: column;
+            align-items: end;
+
+            &>p {
+                margin: 5px 0 0 0;
+                font-size: 12px;
+            }
+        }
+
+        .qr-img {
+            max-height: 100px;
+            margin-top: 20px;
+        }
+
+        .primary-text {
+            color: var(--primary) !important;
+        }
+
+        .heading {}
+
+        .subheading {
+            font-size: 16px !important;
+            color: var(--primary) !important;
+            font-weight: 600 !important;
+        }
+
+        table,
+        tr,
+        td,
+        th {
+            page-break-inside: avoid;
+        }
+
+        .preview {
+            page-break-inside: avoid;
+        }
+
+
+        @media(max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .form-section {
+                display: none;
+            }
+
+            .preview-section {
+                width: 100%;
+            }
+
+            .preview {
+                box-shadow: none;
+            }
+        }
+
+        .payment-options {
+            display: flex;
+            gap: 1em;
+
+            &>.payment-option {
+                display: flex;
+
+                input {
+                    accent-color: var(--primary);
+                }
+            }
+        }
+
+        .payment-details {
+            display: none;
+
+            p {
+                margin: 5px 0;
+                font-size: 12px;
+            }
+        }
+
+        /* TERMS AREA STARTED */
+        .view-terms-area,
+        .view-notes-area {
+            display: none;
+
+            h4 {
+                margin-bottom: 10px;
+            }
+
+            &>p {
+                font-size: 12px;
+                font-style: italic;
+                margin-top: 5px;
+                line-height: 1.6;
+            }
+        }
+
+        .paid-amount,
+        .balance-amount {
+            display: none;
+        }
+
+        /* TERMS AREA ENDED */
+    </style>
+
+    <div class="pdf-container">
+
+        <!-- ================= FORM ================= -->
+        <div class="form-section">
+            <div class="print-btn-container">
+                <button onclick="exportJSON()" class="print-btn">Export JSON</button>
+                <button onclick="triggerJSONUpload()" class="print-btn">Upload JSON</button>
+                <input type="file" id="jsonUpload" accept="application/json" hidden>
+                <button onclick="downloadPDF()" class="print-btn">Download PDF</button>
+            </div>
+
+
+            <h2>Document Settings</h2>
+            <label>Document Title</label>
+            <input type="text" id="docTitle" value="Invoice">
+
+            <label>Theme Color</label>
+            <input type="color" id="themeColor" value="#009688">
+
+            <h2>Company Information</h2>
+            <input type="text" id="companyName" placeholder="Company Name">
+            <input type="email" id="companyEmail" placeholder="Email">
+            <input type="text" id="companyPhone" placeholder="Phone">
+            <textarea id="companyAddress" placeholder="Address"></textarea>
+            <input type="file" id="logoUpload" accept="image/*">
+
+            <h2>Client Information</h2>
+            <input type="text" id="clientName" placeholder="Client Name">
+            <input type="text" id="clientCompany" placeholder="Client Company (Optional)">
+            <input type="email" id="clientEmail" placeholder="Client Email">
+            <input type="text" id="clientPhone" placeholder="Client Phone">
+            <textarea id="clientAddress" placeholder="Client Address"></textarea>
+
+            <h2>Date Information</h2>
+            <label>Issue Date</label>
+            <input type="date" id="issueDate">
+            <label>Due Date</label>
+            <input type="date" id="dueDate">
+
+            <h2>Items</h2>
+            <div id="itemsContainer"></div>
+            <button onclick="addItem()">+ Add Item</button>
+
+            <h2>Notes</h2>
+            <textarea id="notes"></textarea>
+
+            <h2>Terms & Conditions</h2>
+            <textarea id="terms"></textarea>
+
+            <h2>Partially Paid</h2>
+            <input type="number" id="paidAmountInput" placeholder="Amount Paid">
+
+            <h2>Payment Details</h2>
+            <div class="payment-options">
+                <div class="payment-option">
+                    <input type="checkbox" id="showQR">
+                    <label for="showQR">Show QR Code</label>
+                </div>
+                <div class="payment-option">
+                    <input type="checkbox" id="showPaymentDetails">
+                    <label for="showPaymentDetails">Show Payment Details</label>
+                </div>
+                <div class="payment-option">
+                    <input type="checkbox" id="showPaymentPaid">
+                    <label for="showPaymentPaid">Paid</label>
+                </div>
+                <div class="payment-option">
+                    <input type="checkbox" id="partialPaidCheckbox">
+                    <label for="partialPaidCheckbox">Partial Paid</label>
+                </div>
+            </div>
+            <input type="text" id="accountTitle" placeholder="Account Title for QR Code">
+            <input type="text" id="bankName" placeholder="Bank Name">
+            <input type="text" id="accountNumber" placeholder="Account Number">
+            <input type="text" id="iban" placeholder="IBAN">
+            <input type="file" id="qrUpload" accept="image/*">
+
+        </div>
+
+        <!-- ================= PREVIEW ================= -->
+        <div class="preview-section">
+            <div class="preview" id="preview">
+
+                <div class="preview-header">
+                    <div>
+                        <h1 id="previewTitle" class="primary-text">Invoice</h1>
+                    </div>
+                    <img id="previewLogo"
+                        src="http://pixellinks.us/wp-content/uploads/2026/02/cropped-image-removebg-preview.png"
+                        width="120">
+                </div>
+
+                <hr>
+
+                <div class="from-to-container">
+                    <div>
+                        <h4 class="subheading">From:</h4>
+                        <p id="previewCompany">
+                        </p>
+                    </div>
+
+                    <div>
+                        <h4 class="subheading">Bill To:</h4>
+                        <p id="previewClient"></p>
+                    </div>
+                </div>
+
+                <div class="dates">
+                    <div>
+                        <p class="subheading">Issue Date:</p> <span id="previewIssue"></span>
+                    </div>
+                    <div>
+                        <p class="subheading">Due Date:</p> <span id="previewDue"></span>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Rate</th>
+                            <th>Qty</th>
+                            <th>Discount</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewItems"></tbody>
+                </table>
+
+                <div class="totals">
+                    <p>Subtotal: <span id="subtotal">0</span></p>
+                    <p>Total Discount: <span id="totalDiscount">0</span></p>
+                    <h3 class="subheading">Grand Total: <span id="grandTotal">0</span></h3>
+                    <h3 class="subheading paid-amount" id="paidAmountArea">Paid: <span id="paidAmount">0</span></h3>
+                    <h3 class="subheading balance-amount" id="balanceAmountArea">Balance: <span
+                            id="balanceAmount">0</span></h3>
+                    <img id="paidStamp" width="100" src="http://pixellinks.us/wp-content/uploads/2026/02/paid-stamp.png"
+                        alt="">
+                    <img id="partialPaidStamp" width="150"
+                        src="http://pixellinks.us/wp-content/uploads/2026/02/partial-paid.png" alt="">
+                </div>
+
+                <div class="view-notes-area" id="viewNotesArea">
+                    <h4 class="primary-text">Notes</h4>
+                    <p id="previewNotes"></p>
+                </div>
+                <div class="view-terms-area" id="viewTermsArea">
+                    <h4 class="primary-text">Terms</h4>
+                    <p id="previewTerms"></p>
+                </div>
+
+                <div class="qr-img-container">
+                    <img id="previewQR" class="qr-img">
+                    <div class="payment-details" id="previewPaymentDetails">
+                        <p>Account Title: <span id="previewAccountTitle"></span></p>
+                        <p>Bank Name: <span id="previewBankName"></span></p>
+                        <p>Acount Number: <span id="previewAccountNumber"></span></p>
+                        <p>IBAN: <span id="previewIBAN"></span></p>
+                    </div>
+
+                </div>
+
+                <div class="footer">
+                    Powered by Pixellinks.us © 2026
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const itemsContainer = document.getElementById('itemsContainer');
+
+        function addItem() {
+            const div = document.createElement('div');
+            div.className = "item-row";
+            div.innerHTML = `
+    <input type="text" placeholder="Item Name" class="item-name">
+        <input type="text" placeholder="Description" class="item-desc">
+            <input type="number" placeholder="Rate" class="item-rate" value="0">
+                <input type="number" placeholder="Quantity" class="item-qty" value="1">
+                    <input type="number" placeholder="Discount %" class="item-discount" value="0">
+                        <button onclick="this.parentElement.remove(); updatePreview()">Remove</button>
+                        `;
+            itemsContainer.appendChild(div);
+            div.querySelectorAll("input").forEach(input =>
+                input.addEventListener("input", updatePreview)
+            );
+        }
+
+        companyName.value = "Pixellinks";
+        companyEmail.value = "support @pixellinks.us";
+        companyPhone.value = "+1 941 354 1276";
+        companyAddress.value = "Headquarters: Poole, Dorset, UK";
+
+        function updatePreview() {
+            document.getElementById('previewTitle').innerText = docTitle.value;
+
+            document.getElementById('previewCompany').innerHTML =
+                companyName.value + "<br>" +
+                companyEmail.value + "<br>" +
+                companyPhone.value + "<br>" +
+                companyAddress.value;
+
+            document.getElementById('previewClient').innerHTML =
+                clientName.value + "<br>" +
+                clientCompany.value + "<br>" +
+                clientEmail.value + "<br>" +
+                clientPhone.value + "<br>" +
+                clientAddress.value;
+
+            document.getElementById('previewIssue').innerText = issueDate.value;
+            document.getElementById('previewDue').innerText = dueDate.value;
+
+            // Notes & Terms Area
+            if (notes.value.trim() === "") {
+                document.getElementById('viewNotesArea').style.display = "none";
+            } else {
+                document.getElementById('viewNotesArea').style.display = "block";
+                document.getElementById('previewNotes').innerText = notes.value;
+            }
+
+            if (terms.value.trim() === "") {
+                document.getElementById('viewTermsArea').style.display = "none";
+            } else {
+                document.getElementById('viewTermsArea').style.display = "block";
+                document.getElementById('previewTerms').innerText = terms.value;
+            }
+
+            // Payment Details
+            // const showQR = document.getElementById('showQR').checked;
+            // const showPaymentDetails = document.getElementById('showPaymentDetails').checked;
+
+            if (showQR.checked) {
+                document.getElementById('previewQR').style.display = "block";
+            } else {
+                document.getElementById('previewQR').style.display = "none";
+            }
+
+            if (showPaymentDetails.checked) {
+                document.getElementById('previewPaymentDetails').style.display = "block";
+                const accountTitle = document.getElementById('accountTitle').value;
+                const bankName = document.getElementById('bankName').value;
+                const accountNumber = document.getElementById('accountNumber').value;
+                const iban = document.getElementById('iban').value;
+                document.getElementById('previewAccountTitle').innerText = accountTitle;
+                document.getElementById('previewBankName').innerText = bankName;
+                document.getElementById('previewAccountNumber').innerText = accountNumber;
+                document.getElementById('previewIBAN').innerText = iban;
+            } else {
+                document.getElementById('previewPaymentDetails').style.display = "none";
+            }
+
+            if (showPaymentPaid.checked) {
+                paidStamp.style.display = "block";
+            } else {
+                paidStamp.style.display = "none";
+            }
+
+            if (partialPaidCheckbox.checked) {
+                partialPaidStamp.style.display = "block";
+            } else {
+                partialPaidStamp.style.display = "none";
+            }
+
+            // Notes & Terms Area
+
+            let subtotal = 0;
+            let totalDiscount = 0;
+            let tbody = document.getElementById('previewItems');
+            tbody.innerHTML = "";
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const name = row.querySelector('.item-name').value;
+                const desc = row.querySelector('.item-desc').value;
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const discountPercent = parseFloat(row.querySelector('.item-discount').value) || 0;
+
+                const lineTotal = rate * qty;
+                const discountAmount = lineTotal * (discountPercent / 100);
+                const finalTotal = lineTotal - discountAmount;
+
+                subtotal += lineTotal;
+                totalDiscount += discountAmount;
+
+                tbody.innerHTML += `
+                                                    <tr>
+                                                        <td>${name}</td>
+                                                        <td>${desc}</td>
+                                                        <td>${formatCurrency(rate)}</td>
+                                                        <td>${qty}</td>
+                                                        <td>${discountPercent}%</td>
+                                                        <td>${formatCurrency(finalTotal)}</td>
+
+                                                    </tr>
+                                                    `;
+            });
+
+            const grandTotal = subtotal - totalDiscount;
+
+            document.getElementById('subtotal').innerText = formatCurrency(subtotal);
+            document.getElementById('totalDiscount').innerText = formatCurrency(totalDiscount);
+            document.getElementById('grandTotal').innerText = formatCurrency(grandTotal);
+
+
+            if (paidAmountInput.value.trim() !== "") {
+                paidAmountArea.style.display = "block";
+                balanceAmountArea.style.display = "block";
+                paidAmount.innerText = formatCurrency(parseFloat(paidAmountInput.value) || 0);
+                const balance = grandTotal - parseFloat(paidAmountInput.value || 0);
+                document.getElementById('balanceAmount').innerText = formatCurrency(balance);
+            } else {
+                paidAmountArea.style.display = "none";
+                balanceAmountArea.style.display = "none";
+            }
+
+
+        }
+
+        document.querySelectorAll("input, textarea").forEach(el =>
+            el.addEventListener("input", updatePreview)
+        );
+
+        themeColor.addEventListener("input", function () {
+            document.documentElement.style.setProperty('--primary', this.value);
+        });
+
+        logoUpload.addEventListener("change", function (e) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                previewLogo.src = reader.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        qrUpload.addEventListener("change", function (e) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                previewQR.src = reader.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        function downloadPDF() {
+            const element = document.getElementById("preview");
+
+            const opt = {
+                // margin: [20, 15, 20, 15], // top, left, bottom, right (in mm)
+                filename: docTitle.value + ".pdf",
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+
+        function formatCurrency(amount) {
+            return "$" + amount.toFixed(2);
+        }
+
+        function exportJSON() {
+
+            const data = {
+                docTitle: docTitle.value,
+                themeColor: themeColor.value,
+
+                company: {
+                    name: companyName.value,
+                    email: companyEmail.value,
+                    phone: companyPhone.value,
+                    address: companyAddress.value
+                },
+
+                client: {
+                    name: clientName.value,
+                    company: clientCompany.value,
+                    email: clientEmail.value,
+                    phone: clientPhone.value,
+                    address: clientAddress.value
+                },
+
+                dates: {
+                    issue: issueDate.value,
+                    due: dueDate.value
+                },
+
+                notes: notes.value,
+                terms: terms.value,
+
+                payment: {
+                    showQR: showQR.checked,
+                    showPaymentDetails: showPaymentDetails.checked,
+                    showPaid: showPaymentPaid.checked,
+                    accountTitle: accountTitle.value,
+                    bankName: bankName.value,
+                    accountNumber: accountNumber.value,
+                    iban: iban.value
+                },
+
+                items: []
+            };
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                data.items.push({
+                    name: row.querySelector('.item-name').value,
+                    desc: row.querySelector('.item-desc').value,
+                    rate: row.querySelector('.item-rate').value,
+                    qty: row.querySelector('.item-qty').value,
+                    discount: row.querySelector('.item-discount').value
+                });
+            });
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+                type: "application/json"
+            });
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = docTitle.value + ".json";
+            link.click();
+        }
+
+        function triggerJSONUpload() {
+            document.getElementById("jsonUpload").click();
+        }
+
+
+        document.getElementById("jsonUpload").addEventListener("change", function (e) {
+
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+
+                const data = JSON.parse(event.target.result);
+
+                // Basic Fields
+                docTitle.value = data.docTitle || "";
+                themeColor.value = data.themeColor || "#009688";
+                document.documentElement.style.setProperty('--primary', themeColor.value);
+
+                companyName.value = data.company?.name || "";
+                companyEmail.value = data.company?.email || "";
+                companyPhone.value = data.company?.phone || "";
+                companyAddress.value = data.company?.address || "";
+
+                clientName.value = data.client?.name || "";
+                clientCompany.value = data.client?.company || "";
+                clientEmail.value = data.client?.email || "";
+                clientPhone.value = data.client?.phone || "";
+                clientAddress.value = data.client?.address || "";
+
+                issueDate.value = data.dates?.issue || "";
+                dueDate.value = data.dates?.due || "";
+
+                notes.value = data.notes || "";
+                terms.value = data.terms || "";
+
+                // Payment
+                showQR.checked = data.payment?.showQR || false;
+                showPaymentDetails.checked = data.payment?.showPaymentDetails || false;
+                showPaymentPaid.checked = data.payment?.showPaid || false;
+
+                accountTitle.value = data.payment?.accountTitle || "";
+                bankName.value = data.payment?.bankName || "";
+                accountNumber.value = data.payment?.accountNumber || "";
+                iban.value = data.payment?.iban || "";
+
+                // Clear Existing Items
+                itemsContainer.innerHTML = "";
+
+                // Recreate Items
+                if (data.items && data.items.length) {
+                    data.items.forEach(item => {
+                        addItem();
+                        const lastRow = itemsContainer.lastElementChild;
+
+                        lastRow.querySelector('.item-name').value = item.name;
+                        lastRow.querySelector('.item-desc').value = item.desc;
+                        lastRow.querySelector('.item-rate').value = item.rate;
+                        lastRow.querySelector('.item-qty').value = item.qty;
+                        lastRow.querySelector('.item-discount').value = item.discount;
+                    });
+                } else {
+                    addItem();
+                }
+
+                updatePreview();
+            };
+
+            reader.readAsText(file);
+        });
+
+
+
+        addItem();
+        updatePreview();
+
+    </script>
+
+</body>
+
+</html>

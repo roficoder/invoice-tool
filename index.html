@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Invoice / Quote Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="invoice.css">
+</head>
+
+<body>
+
+    <div class="pdf-container">
+        <div class="form-section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>Editor</h1>
+                <input type="color" id="themeColor" value="#009688" style="width: 50px; height: 50px; padding: 2px;">
+            </div>
+
+            <button onclick="downloadPDF()"
+                style="width: 100%; margin-bottom: 20px; font-weight: bold; font-size: 16px;">⬇️ DOWNLOAD PDF</button>
+
+            <h2>Header</h2>
+            <input id="docTitle" placeholder="Document Title" value="Invoice">
+            <input id="docNumber" placeholder="Invoice Number" value="INV-0000">
+            <input id="logo" type="file" accept="image/*" onchange="loadLogo(event)">
+
+
+            <h2>Company & Identity</h2>
+            <input id="usHeading" placeholder="US Office Name" value="Morgan Ingland LLC">
+            <textarea id="usDetails"
+                placeholder="US Address & Contact">65 EAST 2ND STREET, MORGAN HILL, CA 95030&#10;PH: 415-604-1219&#10;fed@miatlantic.us</textarea>
+
+            <input id="ukHeading" placeholder="UK Office Name" value="Morgan Ingland LTD">
+            <textarea id="ukDetails"
+                placeholder="UK Address & Contact">418 LADYPOOL ROAD, BIRMINGHAM, B128JZ&#10;PH: (044) 203 405 0054&#10;fed@miatlantic.com</textarea>
+
+            <h2>Quote & Entity Info</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input id="pRef" placeholder="Project Ref" value="RFQ-WC240030">
+                <input id="qNum" placeholder="Quote #" value="MIL-8443">
+                <input id="vPer" placeholder="Validity" value="02-21-2024">
+                <input id="pTerm" placeholder="Payment Term" value="Net-30">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input id="uei" placeholder="UEI" value="ZP4AMPYVU926">
+                <input id="duns" placeholder="DUNS" value="055594989">
+                <input id="cage" placeholder="CAGE" value="9QB27">
+                <input id="ein" placeholder="EIN" value="35-2710083">
+            </div>
+
+            <h2>Client & Dates</h2>
+            <textarea id="billTo"
+                placeholder="Bill To">Martin A O'Sullivan&#10;700 Highland Avenue, Peekskill, NY 10566</textarea>
+            <textarea id="shipTo"
+                placeholder="Ship To">Martin A O'Sullivan&#10;700 Highland Avenue, Peekskill, NY 10566</textarea>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Issue Date: <input type="date" id="issueDate"></label>
+                <label>Due Date: <input type="date" id="dueDate"></label>
+            </div>
+
+            <h2>Line Items</h2>
+            <div id="itemsContainer"></div>
+            <button onclick="addItem()">+ Add Item</button>
+
+            <!-- PARTIAL PAYMENTS SECTIONS -->
+            <div class="partial-payments">
+                <h2>Partial Payments</h2>
+                <div class="partial-payments-input-group">
+                    <input id="initialPaid" type="number" placeholder="Initial Paid">
+                    <input id="paid" type="number" placeholder="Current Paid">
+                </div>
+            </div>
+
+
+            <div class="payment-options">
+                <div class="payment-option">
+                    <input type="checkbox" id="showPaymentPaid">
+                    <label for="showPaymentPaid">Paid</label>
+                </div>
+                <div class="payment-option">
+                    <input type="checkbox" id="showPartialPaid">
+                    <label for="showPartialPaid">Partial Paid</label>
+                </div>
+                <div class="payment-option">
+                    <input type="checkbox" id="showPartialPaidTotals">
+                    <label for="showPartialPaidTotals">Partial Section</label>
+                </div>
+            </div>
+
+            <h2>Notes</h2>
+            <textarea name="notes" id="notes"></textarea>
+
+            <h2>Terms</h2>
+            <textarea name="terms" id="terms"></textarea>
+
+            <h2>Payment Link</h2>
+            <input name="paymentLinkLabel" id="paymentLinkLabel" placeholder="Payment Link Label">
+            <input name="paymentLink" id="paymentLink" placeholder="Payment Link">
+
+            <h2>QR Code</h2>
+            <input id="qrCode" type="file" accept="image/*" onchange="loadQRCode(event)">
+
+
+            <h2>Bank Details</h2>
+            <div class="bank-details" id="bankAccountDetails">
+            </div>
+            <button onclick="addBankDetails()">Add Bank</button>
+
+            <h2>Footer Boxes</h2>
+            <input id="box1Title" value="ACCOUNTS DEPARTMENT">
+            <textarea id="box1Text">ACCOUNTS EXECUTIVE&#10;415 799 7139&#10;accounts@miatlantic.net</textarea>
+            <input id="box2Title" value="INQUIRIES HELPDESK">
+            <textarea id="box2Text">MANAGER PUBLIC SECTOR&#10;415 991 2400&#10;fed@miatlantic.com</textarea>
+
+            <h2>Fixed Footer Note</h2>
+            <textarea name="endNote" id="endNote"></textarea>
+        </div>
+
+        <!--========== PREVIEW SECTION ============== -->
+        <div class="preview-section">
+            <div class="preview" id="previewArea">
+
+                <div class="doc-header">
+                    <div class="doc-header-left">
+                        <h1 id="docTitlePreview"></h1>
+                        <p id="docNumberPreview"></p>
+                    </div>
+                    <div class="doc-header-right">
+                        <img id="logoPreview" src="" alt="">
+                    </div>
+                </div>
+
+                <div class="header-bar">
+                    <div>Quote Details</div>
+                    <div>Entity Details</div>
+                    <div>US Office</div>
+                    <div>UK Office</div>
+                </div>
+                <div class="details-grid">
+                    <div class="grid-col">
+                        <strong>Project Reference</strong> <span id="dpRef"></span><br><br>
+                        <strong>Quote Number</strong> <span id="dqNum"></span><br><br>
+                        <strong>Validity Period</strong> <span id="dvPer"></span><br><br>
+                        <strong>Payment Term</strong> <span id="dpTerm"></span>
+                    </div>
+                    <div class="grid-col">
+                        <strong>UEI Number</strong> <span id="duei"></span><br><br>
+                        <strong>DUNS Number</strong> <span id="dduns"></span><br><br>
+                        <strong>CAGE</strong> <span id="dcage"></span><br><br>
+                        <strong>EIN</strong> <span id="dein"></span>
+                    </div>
+                    <div class="grid-col">
+                        <strong id="dusHeading"></strong>
+                        <span id="dusDetails" style="white-space: pre-line;"></span>
+                    </div>
+                    <div class="grid-col">
+                        <strong id="dukHeading"></strong>
+                        <span id="dukDetails" style="white-space: pre-line;"></span>
+                    </div>
+                </div>
+
+                <div class="address-section">
+                    <div class="addr-box" style="border-right: 1px solid #ddd;">
+                        <div class="addr-header">Bill To</div>
+                        <div class="addr-content" id="dbillTo" style="white-space: pre-line;"></div>
+                    </div>
+                    <div class="addr-box">
+                        <div class="addr-header">Ship To</div>
+                        <div class="addr-content" id="dshipTo" style="white-space: pre-line;"></div>
+                    </div>
+                </div>
+                <div class="date-row">
+                    <div><strong>Issue Date:</strong> <span id="dissDate"></span></div>
+                    <div><strong>Due Date:</strong> <span id="ddueDate"></span></div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th style="width: 80px;">Qty</th>
+                            <th style="width: 100px;">Price</th>
+                            <th style="width: 50px;">Discount</th>
+                            <th style="width: 100px;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pItems"></tbody>
+                </table>
+
+                <div id="totals" class="totals">
+                    <div style="text-align: right; margin-top: 20px; font-size: 15px;">
+                        <strong>Sub Total: <span id="pSub"></span></strong>
+                    </div>
+                    <div style="text-align: right; margin-top: 10px; font-size: 12px;">
+                        <strong>Total Discount: <span id="pDiscount"></span></strong>
+                    </div>
+                    <div style="text-align: right; margin-top: 20px; font-size: 18px; color: var(--primary);">
+                        <strong>Grand Total: <span id="pGrand"></span></strong>
+                    </div>
+                    <div id="partialPaymentTotals">
+                        <div style="text-align: right; margin-top: 10px; font-size: 14px;">
+                            <strong>Paid: <span id="pPaid"></span></strong>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px; font-size: 14px;">
+                            <strong>Initial Paid: <span id="pInitialPaid"></span></strong>
+                        </div>
+                        <div style="text-align: right; margin-top: 20px; font-size: 18px; color: var(--primary);">
+                            <strong>Balance Remaining: <span id="pBalance"></span></strong>
+                        </div>
+                    </div>
+                    <img id="paidStamp" width="100" src="http://pixellinks.us/wp-content/uploads/2026/02/paid-stamp.png"
+                        alt="">
+                    <img id="partialPaidStamp" width="150"
+                        src="http://pixellinks.us/wp-content/uploads/2026/02/partial-paid.png" alt="">
+                </div>
+
+                <div class="view-notes-area" id="viewNotesArea">
+                    <h4 class="primary-text">Notes</h4>
+                    <p id="pNotes"></p>
+                </div>
+                <div class="view-terms-area" id="viewTermsArea">
+                    <h4 class="primary-text">Terms</h4>
+                    <p id="pTerms"></p>
+                </div>
+
+                <div class="view-paymentlink-area" id="viewPaymentLinkArea">
+                    <h4 class="primary-text">Payment Link</h4>
+                    <a id="pLink" class="payment-link"></a>
+                </div>
+
+                <div class="qr">
+                    <img src="" id="qrPreview" alt="">
+                </div>
+
+                <div id="pBankDetails"></div>
+
+                <div class="highlight-container">
+                    <div class="h-box white">
+                        <strong id="db1Title"></strong>
+                        <div id="db1Text" style="white-space: pre-line;"></div>
+                    </div>
+                    <div class="h-box colored">
+                        <strong id="db2Title"></strong>
+                        <div id="db2Text" style="white-space: pre-line;"></div>
+                    </div>
+                </div>
+
+                <div class="page-footer">
+                    <p id="pEndNote"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="invoice.js"></script>
+</body>
+
+</html>
