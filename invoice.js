@@ -101,7 +101,7 @@ function updatePreview() {
         pLink.href = paymentLink.value;
     }
 
-    
+
 
     // Partial Payment
     pInitialPaid.innerText = formatCurrency(initialPaid.value);
@@ -129,7 +129,7 @@ function updatePreview() {
     pSub.innerText = "$" + subtotal.toFixed(2);
     pDiscount.innerText = "$" + totalDiscount.toFixed(2);
     pBalance.innerText = formatCurrency(total - initialPaid.value - paid.value)
-    
+
 
     // STAMPS CONDITIONALS
     if (showPaymentPaid.checked) {
@@ -235,6 +235,134 @@ function formatCurrency(amount) {
 
     return "$" + value.toFixed(2);
 
+}
+
+function exportJSON() {
+    const data = {
+        // Basic Fields
+        fields: {},
+        // Dynamic Items
+        items: [],
+        bankDetails: [],
+        // Images (Base64 strings)
+        images: {
+            logo: document.getElementById('logoPreview').src,
+            qr: document.getElementById('qrPreview').src
+        }
+    };
+
+    // 1. Capture all static inputs/textareas
+    document.querySelectorAll("input:not([type='file']), textarea").forEach(input => {
+        if (input.id) {
+            data.fields[input.id] = input.type === 'checkbox' ? input.checked : input.value;
+        }
+    });
+
+    // 2. Capture dynamic Item rows
+    document.querySelectorAll('.item-input-group').forEach(group => {
+        data.items.push({
+            name: group.querySelector('.i-name').value,
+            desc: group.querySelector('.i-desc').value,
+            qty: group.querySelector('.i-qty').value,
+            prc: group.querySelector('.i-prc').value,
+            dis: group.querySelector('.i-dis').value
+        });
+    });
+
+    // 3. Capture dynamic Bank rows
+    document.querySelectorAll('.bank-input-group').forEach(group => {
+        data.bankDetails.push({
+            benName: group.querySelector('#bBenName').value,
+            bankName: group.querySelector('#bName').value,
+            currency: group.querySelector('#bCurrency').value,
+            accNum: group.querySelector('#bAccNumber').value,
+            sort: group.querySelector('#bSortCode').value,
+            swift: group.querySelector('#bSwiftCode').value,
+            iban: group.querySelector('#bIban').value,
+            address: group.querySelector('#bAddress').value,
+            country: group.querySelector('#bCountry').value
+        });
+    });
+
+    // Trigger Download
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", (docNumber.value || "draft") + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function triggerJSONUpload() {
+    document.getElementById("jsonUpload").click();
+    document.getElementById('jsonUpload').addEventListener('change', importJSON)
+}
+
+
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = JSON.parse(e.target.result);
+
+        // 1. Restore static fields
+        for (const id in data.fields) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'checkbox') el.checked = data.fields[id];
+                else el.value = data.fields[id];
+            }
+        }
+
+        document.documentElement.style.setProperty('--primary', themeColor.value);
+
+        // 2. Restore Items (Clear existing first)
+        document.getElementById("itemsContainer").innerHTML = "";
+        data.items.forEach(item => {
+            addItem(); // Create row
+            const lastRow = document.querySelector("#itemsContainer .item-input-group:last-child");
+            lastRow.querySelector('.i-name').value = item.name;
+            lastRow.querySelector('.i-desc').value = item.desc;
+            lastRow.querySelector('.i-qty').value = item.qty;
+            lastRow.querySelector('.i-prc').value = item.prc;
+            lastRow.querySelector('.i-dis').value = item.dis;
+        });
+
+        // 3. Restore Bank Details (Clear existing first)
+        document.getElementById("bankAccountDetails").innerHTML = "";
+        data.bankDetails.forEach(bank => {
+            addBankDetails();
+            const lastRow = document.querySelector("#bankAccountDetails .bank-input-group:last-child");
+            lastRow.querySelector('#bBenName').value = bank.benName;
+            lastRow.querySelector('#bName').value = bank.bankName;
+            lastRow.querySelector('#bCurrency').value = bank.currency;
+            lastRow.querySelector('#bAccNumber').value = bank.accNum;
+            lastRow.querySelector('#bSortCode').value = bank.sort;
+            lastRow.querySelector('#bSwiftCode').value = bank.swift;
+            lastRow.querySelector('#bIban').value = bank.iban;
+            lastRow.querySelector('#bAddress').value = bank.address;
+            lastRow.querySelector('#bCountry').value = bank.country;
+        });
+
+        // 4. Restore Images
+        if (data.images.logo && data.images.logo.startsWith('data:image')) {
+            const logoImg = document.getElementById('logoPreview');
+            logoImg.src = data.images.logo;
+            logoImg.style.display = 'block';
+        }
+        if (data.images.qr && data.images.qr.startsWith('data:image')) {
+            const qrImg = document.getElementById('qrPreview');
+            qrImg.src = data.images.qr;
+            qrImg.style.display = 'block';
+        }
+
+        updatePreview();
+        alert("Draft imported successfully!");
+    };
+    reader.readAsText(file);
 }
 
 // Initialize
